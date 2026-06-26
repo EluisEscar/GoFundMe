@@ -14,11 +14,13 @@ progreso** que se llena según el porcentaje alcanzado.
 
 ## Cómo empezar
 
+> Este proyecto usa **pnpm** como gestor de paquetes.
+
 ```bash
-npm install
-npm run dev      # servidor de desarrollo (http://localhost:5173)
-npm run build    # build de producción en /dist
-npm run preview  # previsualizar el build
+pnpm install
+pnpm dev      # servidor de desarrollo (http://localhost:5173)
+pnpm build    # build de producción en /dist
+pnpm preview  # previsualizar el build
 ```
 
 ## Estructura
@@ -37,6 +39,9 @@ src/
 ```
 
 ## Conectar tu lógica
+
+> Nota: el repo incluye `pnpm-lock.yaml`. Evita usar `npm install` para no
+> generar un `package-lock.json` paralelo.
 
 - **Datos de la campaña:** edita `src/data/campaign.js` o cárgalos desde tu API
   con un `useEffect` en `App.jsx`.
