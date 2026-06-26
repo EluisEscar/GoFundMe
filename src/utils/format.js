@@ -1,6 +1,6 @@
 // Utilidades de formato de números y moneda.
 
-export function formatCurrency(amount, currency = 'MXN', locale = 'es-MX') {
+export function formatCurrency(amount, currency = 'PEN', locale = 'es-PE') {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,

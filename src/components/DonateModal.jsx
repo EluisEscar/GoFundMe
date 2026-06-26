@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react'
 import { formatCurrency } from '../utils/format.js'
+import PaymentMethods from './PaymentMethods.jsx'
 
-// Modal para capturar una donación.
-// Por ahora solo muestra el flujo de UI; cuando conectes tu lógica,
-// reemplaza el contenido de handleSubmit por la llamada a tu backend/pasarela.
+// Modal de donación en dos pasos:
+//   Paso 1: elegir monto, nombre y mensaje.
+//   Paso 2: elegir método de pago (Yape / Transferencia) y ver los datos.
+//
+// El registro real de la donación lo hará el backend al detectar el ingreso
+// (scraping del correo del banco). Mientras tanto, el botón "Ya doné" llama a
+// onConfirm para simular el flujo en la demo.
 export default function DonateModal({ campaign, onClose, onConfirm }) {
-  const { suggestedAmounts, currency } = campaign
-  const [amount, setAmount] = useState(suggestedAmounts[1] ?? 500)
+  const { suggestedAmounts, currency, paymentMethods } = campaign
+  const [step, setStep] = useState(1)
+  const [amount, setAmount] = useState(suggestedAmounts[1] ?? 50)
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
 
@@ -17,9 +23,12 @@ export default function DonateModal({ campaign, onClose, onConfirm }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  function handleSubmit(e) {
+  function goToPayment(e) {
     e.preventDefault()
-    // TODO: aquí va tu lógica (pasarela de pago / API).
+    if (Number(amount) > 0) setStep(2)
+  }
+
+  function handleConfirm() {
     onConfirm({ amount: Number(amount), name: name.trim() || 'Anónimo', message: message.trim() })
   }
 
@@ -35,65 +44,92 @@ export default function DonateModal({ campaign, onClose, onConfirm }) {
         <button className="modal__close" onClick={onClose} aria-label="Cerrar">
           ×
         </button>
-        <h2 id="donate-title" className="section-title">
-          Haz tu donación
-        </h2>
 
-        <form onSubmit={handleSubmit}>
-          <label className="field-label">Elige un monto</label>
-          <div className="amount-grid">
-            {suggestedAmounts.map((a) => (
-              <button
-                type="button"
-                key={a}
-                className={`amount-chip ${Number(amount) === a ? 'is-active' : ''}`}
-                onClick={() => setAmount(a)}
-              >
-                {formatCurrency(a, currency)}
+        {/* -------------------- Paso 1: monto -------------------- */}
+        {step === 1 && (
+          <>
+            <h2 id="donate-title" className="section-title">
+              Haz tu donación
+            </h2>
+            <form onSubmit={goToPayment}>
+              <label className="field-label">Elige un monto</label>
+              <div className="amount-grid">
+                {suggestedAmounts.map((a) => (
+                  <button
+                    type="button"
+                    key={a}
+                    className={`amount-chip ${Number(amount) === a ? 'is-active' : ''}`}
+                    onClick={() => setAmount(a)}
+                  >
+                    {formatCurrency(a, currency)}
+                  </button>
+                ))}
+              </div>
+
+              <label className="field-label" htmlFor="custom-amount">
+                Otro monto
+              </label>
+              <input
+                id="custom-amount"
+                className="input"
+                type="number"
+                min="1"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+
+              <label className="field-label" htmlFor="donor-name">
+                Tu nombre (opcional)
+              </label>
+              <input
+                id="donor-name"
+                className="input"
+                type="text"
+                placeholder="Anónimo"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+
+              <label className="field-label" htmlFor="donor-message">
+                Mensaje (opcional)
+              </label>
+              <textarea
+                id="donor-message"
+                className="input"
+                rows="2"
+                placeholder="Deja un mensaje de apoyo"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
+
+              <button type="submit" className="btn btn--primary btn--block">
+                Continuar
               </button>
-            ))}
-          </div>
+            </form>
+          </>
+        )}
 
-          <label className="field-label" htmlFor="custom-amount">
-            Otro monto ({currency})
-          </label>
-          <input
-            id="custom-amount"
-            className="input"
-            type="number"
-            min="1"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
+        {/* -------------------- Paso 2: método de pago -------------------- */}
+        {step === 2 && (
+          <>
+            <button className="modal__back" onClick={() => setStep(1)}>
+              ← Volver
+            </button>
+            <h2 id="donate-title" className="section-title">
+              Donar {formatCurrency(Number(amount) || 0, currency)}
+            </h2>
 
-          <label className="field-label" htmlFor="donor-name">
-            Tu nombre (opcional)
-          </label>
-          <input
-            id="donor-name"
-            className="input"
-            type="text"
-            placeholder="Anónimo"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+            <PaymentMethods methods={paymentMethods} />
 
-          <label className="field-label" htmlFor="donor-message">
-            Mensaje (opcional)
-          </label>
-          <textarea
-            id="donor-message"
-            className="input"
-            rows="2"
-            placeholder="Deja un mensaje de apoyo"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
-
-          <button type="submit" className="btn btn--primary btn--block">
-            Donar {formatCurrency(Number(amount) || 0, currency)}
-          </button>
-        </form>
+            <button className="btn btn--primary btn--block" onClick={handleConfirm}>
+              Ya realicé mi donación
+            </button>
+            <p className="pay__note">
+              Validaremos tu aporte automáticamente y aparecerá en la lista en
+              cuanto se confirme el ingreso.
+            </p>
+          </>
+        )}
       </div>
     </div>
   )

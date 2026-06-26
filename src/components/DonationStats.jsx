@@ -20,7 +20,7 @@ export default function DonationStats({ campaign, onDonate }) {
 
       <div className="stats__meta">
         <span>{percent}% de la meta</span>
-        <span>{donorsCount.toLocaleString('es-MX')} donaciones</span>
+        <span>{donorsCount.toLocaleString('es-PE')} donaciones</span>
       </div>
 
       <button className="btn btn--primary btn--block" onClick={onDonate}>
