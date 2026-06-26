@@ -63,14 +63,14 @@ export default function App() {
               </p>
             ))}
           </div>
-
-          <DonationList
-            donations={campaign.recentDonations}
-            currency={campaign.currency}
-          />
         </section>
 
         <DonationStats campaign={campaign} onDonate={() => setShowModal(true)} />
+
+        <DonationList
+          donations={campaign.recentDonations}
+          currency={campaign.currency}
+        />
       </main>
 
       <footer className="footer">

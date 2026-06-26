@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { formatCurrency } from '../utils/format.js'
+import { formatCurrency, thankYouMessage } from '../utils/format.js'
 import PaymentMethods from './PaymentMethods.jsx'
 
 // Modal de donación en dos pasos:
@@ -61,6 +61,7 @@ export default function DonateModal({ campaign, onClose, onConfirm }) {
                     className={`amount-chip ${Number(amount) === a ? 'is-active' : ''}`}
                     onClick={() => setAmount(a)}
                   >
+                    <span className="amount-chip__badge">{thankYouMessage(a)}</span>
                     {formatCurrency(a, currency)}
                   </button>
                 ))}
@@ -77,6 +78,9 @@ export default function DonateModal({ campaign, onClose, onConfirm }) {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
+              {thankYouMessage(amount) && (
+                <p className="thanks-live">{thankYouMessage(amount)}</p>
+              )}
 
               <label className="field-label" htmlFor="donor-name">
                 Tu nombre (opcional)

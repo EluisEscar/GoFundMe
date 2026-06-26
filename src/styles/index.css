@@ -78,6 +78,20 @@ body {
   gap: 24px;
   padding-top: 24px;
   padding-bottom: 48px;
+  /* Orden en móvil: contenido (historia) → tarjeta de donar → donaciones */
+  grid-template-areas:
+    'main'
+    'stats'
+    'donations';
+}
+.content {
+  grid-area: main;
+}
+.stats {
+  grid-area: stats;
+}
+.donations {
+  grid-area: donations;
 }
 
 .campaign-title {
@@ -318,9 +332,10 @@ body {
   gap: 8px;
 }
 .amount-chip {
+  position: relative;
   font: inherit;
   font-weight: 700;
-  padding: 12px;
+  padding: 16px 12px 12px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #fff;
@@ -334,6 +349,40 @@ body {
   border-color: var(--green);
   background: rgba(2, 169, 92, 0.1);
   color: var(--green-dark);
+}
+/* Badge de agradecimiento en la esquina del chip */
+.amount-chip__badge {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  max-width: 95%;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #fff;
+  background: var(--green);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 6px rgba(2, 169, 92, 0.3);
+}
+.amount-chip.is-active .amount-chip__badge {
+  background: var(--green-dark);
+}
+
+/* Mensaje de agradecimiento dinámico bajo "Otro monto" */
+.thanks-live {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--green-dark);
+  background: rgba(2, 169, 92, 0.1);
+  border-radius: 10px;
+  text-align: center;
+  animation: fade 0.2s ease;
 }
 .modal form .btn--block {
   margin-top: 18px;
@@ -490,6 +539,10 @@ body {
   .layout {
     grid-template-columns: 1fr 340px;
     align-items: start;
+    /* En escritorio la tarjeta de donar ocupa la columna derecha en ambas filas */
+    grid-template-areas:
+      'main stats'
+      'donations stats';
   }
   .stats {
     position: sticky;

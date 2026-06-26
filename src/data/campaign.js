@@ -43,7 +43,7 @@ export const campaign = {
   ],
 
   // --- Montos sugeridos para el botón de donar ---
-  suggestedAmounts: [20, 50, 100, 250],
+  suggestedAmounts: [10, 20, 50, 100],
 
   // ---------------------------------------------------------------------------
   // MÉTODOS DE PAGO
