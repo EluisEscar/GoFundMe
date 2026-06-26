@@ -10,7 +10,7 @@
 
 export const campaign = {
   // --- Información principal ---
-  title: 'Ayúdanos a reconstruir la escuela del barrio',
+  title: 'Ayúdanos a recuperar la vista de Luchito',
   organizer: 'Asociación Vecinal Los Pinos',
   location: 'Lima, Perú',
   createdAt: '2026-06-01',
@@ -20,11 +20,11 @@ export const campaign = {
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80',
 
   // --- Meta y recaudación ---
-  goal: 50000, // Meta total a recaudar
-  raised: 32500, // Monto recaudado hasta ahora
+  goal: 30000, // Meta total a recaudar
+  raised: 0, // Monto recaudado hasta ahora
   currency: 'PEN', // Soles peruanos (S/)
   locale: 'es-PE',
-  donorsCount: 348,
+  donorsCount: 0,
 
   // --- Descripción (acepta varios párrafos) ---
   story: [

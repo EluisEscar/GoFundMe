@@ -76,8 +76,8 @@ export default function App() {
       <footer className="footer">
         <div className="container">
           <p>
-            Plantilla de recaudación · Hecha con React. Conecta tu lógica de pagos
-            para empezar a recibir donaciones sin comisiones de plataforma.
+            Cada aporte nos acerca a la meta de recuperar tu vista y mejorar tu calidad de vida. 
+            ¡Gracias por tu apoyo!
           </p>
         </div>
       </footer>
