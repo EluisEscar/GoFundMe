@@ -5,7 +5,7 @@ import { formatCurrency, progressPercent } from '../utils/format.js'
 // Tarjeta lateral con el monto recaudado, la barra de progreso, la meta,
 // el número de donantes y los botones de donar y compartir.
 export default function DonationStats({ campaign, onDonate }) {
-  const { raised, goal, currency, donorsCount } = campaign
+  const { raised = 0, goal = 0, currency, donorsCount = 0 } = campaign
   const percent = progressPercent(raised, goal)
   const [shared, setShared] = useState(false)
 
