@@ -14,7 +14,6 @@ export default function DonateModal({ campaign, onClose, onConfirm }) {
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
   const [method, setMethod] = useState('otro')
-  const [opNumber, setOpNumber] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -38,7 +37,6 @@ export default function DonateModal({ campaign, onClose, onConfirm }) {
       name: name.trim() || 'Anónimo',
       message: message.trim(),
       method,
-      op_number: opNumber.trim(),
     })
     setSubmitting(false)
     if (ok) setStep(3)
@@ -137,18 +135,6 @@ export default function DonateModal({ campaign, onClose, onConfirm }) {
             </h2>
 
             <PaymentMethods methods={paymentMethods} onSelect={setMethod} />
-
-            <label className="field-label" htmlFor="op-number">
-              N° de operación / constancia
-            </label>
-            <input
-              id="op-number"
-              className="input"
-              type="text"
-              placeholder="Ej: 00123456"
-              value={opNumber}
-              onChange={(e) => setOpNumber(e.target.value)}
-            />
 
             {error && <p className="form-error">{error}</p>}
 

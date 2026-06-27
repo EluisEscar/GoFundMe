@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchPending, actOnDonation } from '../lib/api.js'
-import { formatCurrency, timeAgo } from '../utils/format.js'
+import { fetchPending, actOnDonation, fetchCampaign } from '../lib/api.js'
+import { formatCurrency, progressPercent, timeAgo } from '../utils/format.js'
 
-// Panel de administración (ruta /#admin). Pide una contraseña, lista las
-// donaciones pendientes y permite aprobarlas o rechazarlas. La contraseña se
-// guarda en sessionStorage para no pedirla en cada recarga de la sesión.
+// Panel de administración (ruta /#admin). Pide una contraseña, muestra un
+// resumen de la campaña y la lista de donaciones pendientes para aprobar o
+// rechazar. La contraseña se guarda en sessionStorage para no pedirla en cada
+// recarga de la sesión.
 export default function AdminPanel({ currency = 'PEN' }) {
   const [password, setPassword] = useState(
     () => sessionStorage.getItem('admin_pw') || ''
   )
   const [authed, setAuthed] = useState(false)
   const [pending, setPending] = useState([])
+  const [totals, setTotals] = useState(null) // { raised, donors, goal }
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
 
@@ -21,6 +23,12 @@ export default function AdminPanel({ currency = 'PEN' }) {
       setAuthed(true)
       setError('')
       sessionStorage.setItem('admin_pw', pw)
+      // Totales de la campaña (recaudado / donantes / meta) para el resumen.
+      fetchCampaign()
+        .then((c) =>
+          setTotals({ raised: c.raised, donors: c.donors, goal: c.goal })
+        )
+        .catch(() => {})
     } catch (e) {
       setAuthed(false)
       setError(e.message)
@@ -45,11 +53,27 @@ export default function AdminPanel({ currency = 'PEN' }) {
     try {
       await actOnDonation(password, id, action)
       setPending((cur) => cur.filter((d) => d.id !== id))
+      // Refrescamos totales tras aprobar (sube el recaudado).
+      if (action === 'approve') {
+        fetchCampaign()
+          .then((c) =>
+            setTotals({ raised: c.raised, donors: c.donors, goal: c.goal })
+          )
+          .catch(() => {})
+      }
     } catch (e) {
       setError(e.message)
     } finally {
       setBusyId(null)
     }
+  }
+
+  function logout() {
+    sessionStorage.removeItem('admin_pw')
+    setPassword('')
+    setAuthed(false)
+    setPending([])
+    setTotals(null)
   }
 
   // ---- Pantalla de login ----
@@ -84,18 +108,59 @@ export default function AdminPanel({ currency = 'PEN' }) {
     )
   }
 
-  // ---- Lista de pendientes ----
+  // Monto total en cola (suma de las donaciones pendientes).
+  const pendingTotal = pending.reduce((sum, d) => sum + Number(d.amount), 0)
+  const percent = totals ? progressPercent(totals.raised, totals.goal) : 0
+
+  // ---- Dashboard ----
   return (
     <div className="container admin">
+      <div className="admin__bar">
+        <h1 className="admin__title">Panel de administración</h1>
+        <button className="btn btn--ghost btn--sm" onClick={logout}>
+          Cerrar sesión
+        </button>
+      </div>
+
+      {/* Resumen de la campaña */}
+      <div className="admin-stats">
+        <div className="admin-stat">
+          <span className="admin-stat__label">Recaudado</span>
+          <span className="admin-stat__value">
+            {totals ? formatCurrency(totals.raised, currency) : '—'}
+          </span>
+          {totals && (
+            <span className="admin-stat__sub">
+              {percent}% de {formatCurrency(totals.goal, currency)}
+            </span>
+          )}
+        </div>
+        <div className="admin-stat">
+          <span className="admin-stat__label">Donaciones</span>
+          <span className="admin-stat__value">
+            {totals ? totals.donors : '—'}
+          </span>
+          <span className="admin-stat__sub">aprobadas</span>
+        </div>
+        <div className="admin-stat admin-stat--accent">
+          <span className="admin-stat__label">Pendientes</span>
+          <span className="admin-stat__value">{pending.length}</span>
+          <span className="admin-stat__sub">
+            {formatCurrency(pendingTotal, currency)} por validar
+          </span>
+        </div>
+      </div>
+
       <div className="admin__head">
-        <h1 className="section-title">Donaciones pendientes</h1>
-        <span className="admin__count">{pending.length}</span>
+        <h2 className="section-title">Donaciones pendientes</h2>
       </div>
 
       {error && <p className="form-error">{error}</p>}
 
       {pending.length === 0 ? (
-        <p className="donations__empty">No hay donaciones pendientes 🎉</p>
+        <div className="card admin__empty">
+          <p className="donations__empty">No hay donaciones pendientes 🎉</p>
+        </div>
       ) : (
         <ul className="admin__list">
           {pending.map((d) => (
@@ -106,12 +171,7 @@ export default function AdminPanel({ currency = 'PEN' }) {
                   <span className="admin-item__method">{d.method}</span>
                 </p>
                 <p className="admin-item__name">{d.name}</p>
-                {d.op_number && (
-                  <p className="admin-item__op">Operación: {d.op_number}</p>
-                )}
-                {d.message && (
-                  <p className="admin-item__msg">"{d.message}"</p>
-                )}
+                {d.message && <p className="admin-item__msg">"{d.message}"</p>}
                 <p className="admin-item__date">{timeAgo(d.created_at)}</p>
               </div>
               <div className="admin-item__actions">
