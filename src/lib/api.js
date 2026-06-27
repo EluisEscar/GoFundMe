@@ -25,15 +25,17 @@ export async function submitDonation(payload) {
 
 // --- Administración (requieren contraseña) ---
 
-export async function fetchPending(password) {
-  const res = await fetch(`${BASE}/admin`, {
+// Lista donaciones por estado: 'pending' | 'approved' | 'rejected'.
+export async function fetchDonations(password, status = 'pending') {
+  const res = await fetch(`${BASE}/admin?status=${status}`, {
     headers: { 'x-admin-password': password },
   })
   if (res.status === 401) throw new Error('Contraseña incorrecta')
-  if (!res.ok) throw new Error('No se pudieron cargar las pendientes')
+  if (!res.ok) throw new Error('No se pudieron cargar las donaciones')
   return res.json()
 }
 
+// action: 'approve' | 'reject' | 'reset' (reset = volver a pendiente).
 export async function actOnDonation(password, id, action) {
   const res = await fetch(`${BASE}/admin`, {
     method: 'POST',
@@ -44,5 +46,22 @@ export async function actOnDonation(password, id, action) {
     body: JSON.stringify({ id, action }),
   })
   if (!res.ok) throw new Error('No se pudo actualizar la donación')
+  return res.json()
+}
+
+// Edita el título y/o la meta de la campaña.
+export async function updateCampaignConfig(password, config) {
+  const res = await fetch(`${BASE}/admin`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-password': password,
+    },
+    body: JSON.stringify({ config }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || 'No se pudo actualizar la campaña')
+  }
   return res.json()
 }

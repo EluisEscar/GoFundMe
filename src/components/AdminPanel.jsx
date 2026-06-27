@@ -1,66 +1,104 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchPending, actOnDonation, fetchCampaign } from '../lib/api.js'
+import {
+  fetchDonations,
+  actOnDonation,
+  fetchCampaign,
+  updateCampaignConfig,
+} from '../lib/api.js'
 import { formatCurrency, progressPercent, timeAgo } from '../utils/format.js'
 
+const TABS = [
+  { key: 'pending', label: 'Pendientes' },
+  { key: 'approved', label: 'Aprobadas' },
+  { key: 'rejected', label: 'Rechazadas' },
+]
+
 // Panel de administración (ruta /#admin). Pide una contraseña, muestra un
-// resumen de la campaña y la lista de donaciones pendientes para aprobar o
-// rechazar. La contraseña se guarda en sessionStorage para no pedirla en cada
-// recarga de la sesión.
+// resumen de la campaña, permite editar título/meta y gestionar las donaciones
+// (aprobar, rechazar y deshacer) organizadas por estado en pestañas.
 export default function AdminPanel({ currency = 'PEN' }) {
   const [password, setPassword] = useState(
     () => sessionStorage.getItem('admin_pw') || ''
   )
   const [authed, setAuthed] = useState(false)
-  const [pending, setPending] = useState([])
-  const [totals, setTotals] = useState(null) // { raised, donors, goal }
+  const [tab, setTab] = useState('pending')
+  const [list, setList] = useState([]) // donaciones de la pestaña activa
+  const [pendingCount, setPendingCount] = useState(0)
+  const [totals, setTotals] = useState(null) // { raised, donors, goal, title }
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
 
-  const load = useCallback(async (pw) => {
-    try {
-      const data = await fetchPending(pw)
-      setPending(data.donations || [])
-      setAuthed(true)
-      setError('')
-      sessionStorage.setItem('admin_pw', pw)
-      // Totales de la campaña (recaudado / donantes / meta) para el resumen.
-      fetchCampaign()
-        .then((c) =>
-          setTotals({ raised: c.raised, donors: c.donors, goal: c.goal })
-        )
-        .catch(() => {})
-    } catch (e) {
-      setAuthed(false)
-      setError(e.message)
-    }
-  }, [])
+  // Edición de campaña
+  const [editTitle, setEditTitle] = useState('')
+  const [editGoal, setEditGoal] = useState('')
+  const [configInit, setConfigInit] = useState(false)
+  const [savingConfig, setSavingConfig] = useState(false)
+  const [configMsg, setConfigMsg] = useState('')
 
-  // Si ya había contraseña guardada, intenta entrar directo.
+  const load = useCallback(
+    async (pw, which) => {
+      try {
+        // Siempre traemos las pendientes (para el contador) y, si la pestaña
+        // activa es otra, también su lista.
+        const pendingData = await fetchDonations(pw, 'pending')
+        setPendingCount(pendingData.donations.length)
+        if (which === 'pending') {
+          setList(pendingData.donations)
+        } else {
+          const data = await fetchDonations(pw, which)
+          setList(data.donations)
+        }
+        setAuthed(true)
+        setError('')
+        sessionStorage.setItem('admin_pw', pw)
+        fetchCampaign()
+          .then((c) =>
+            setTotals({
+              raised: c.raised,
+              donors: c.donors,
+              goal: c.goal,
+              title: c.title,
+            })
+          )
+          .catch(() => {})
+      } catch (e) {
+        setAuthed(false)
+        setError(e.message)
+      }
+    },
+    []
+  )
+
+  // Entrada directa si ya había contraseña guardada.
   useEffect(() => {
-    if (password) load(password)
+    if (password) load(password, 'pending')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Refresco automático mientras está autenticado.
+  // Recarga al cambiar de pestaña + refresco automático.
   useEffect(() => {
     if (!authed) return
-    const id = setInterval(() => load(password), 10000)
+    load(password, tab)
+    const id = setInterval(() => load(password, tab), 10000)
     return () => clearInterval(id)
-  }, [authed, password, load])
+  }, [authed, tab, password, load])
+
+  // Inicializa los campos de edición cuando llegan los totales.
+  useEffect(() => {
+    if (totals && !configInit) {
+      setEditTitle(totals.title || '')
+      setEditGoal(String(totals.goal || ''))
+      setConfigInit(true)
+    }
+  }, [totals, configInit])
 
   async function handleAction(id, action) {
     setBusyId(id)
     try {
       await actOnDonation(password, id, action)
-      setPending((cur) => cur.filter((d) => d.id !== id))
-      // Refrescamos totales tras aprobar (sube el recaudado).
-      if (action === 'approve') {
-        fetchCampaign()
-          .then((c) =>
-            setTotals({ raised: c.raised, donors: c.donors, goal: c.goal })
-          )
-          .catch(() => {})
-      }
+      // Quitamos el ítem de la lista actual (cambió de estado).
+      setList((cur) => cur.filter((d) => d.id !== id))
+      load(password, tab) // refresca contadores y totales
     } catch (e) {
       setError(e.message)
     } finally {
@@ -68,12 +106,32 @@ export default function AdminPanel({ currency = 'PEN' }) {
     }
   }
 
+  async function handleSaveConfig(e) {
+    e.preventDefault()
+    setSavingConfig(true)
+    setConfigMsg('')
+    try {
+      await updateCampaignConfig(password, {
+        title: editTitle,
+        goal: Number(editGoal),
+      })
+      setConfigMsg('Guardado ✓')
+      load(password, tab)
+      setTimeout(() => setConfigMsg(''), 2500)
+    } catch (e) {
+      setConfigMsg(e.message)
+    } finally {
+      setSavingConfig(false)
+    }
+  }
+
   function logout() {
     sessionStorage.removeItem('admin_pw')
     setPassword('')
     setAuthed(false)
-    setPending([])
+    setList([])
     setTotals(null)
+    setConfigInit(false)
   }
 
   // ---- Pantalla de login ----
@@ -84,12 +142,12 @@ export default function AdminPanel({ currency = 'PEN' }) {
           className="card admin-login__card"
           onSubmit={(e) => {
             e.preventDefault()
-            load(password)
+            load(password, 'pending')
           }}
         >
           <h1 className="section-title">Panel de administración</h1>
           <p className="admin-login__hint">
-            Ingresa la contraseña para revisar las donaciones pendientes.
+            Ingresa la contraseña para gestionar las donaciones.
           </p>
           <input
             className="input"
@@ -108,8 +166,6 @@ export default function AdminPanel({ currency = 'PEN' }) {
     )
   }
 
-  // Monto total en cola (suma de las donaciones pendientes).
-  const pendingTotal = pending.reduce((sum, d) => sum + Number(d.amount), 0)
   const percent = totals ? progressPercent(totals.raised, totals.goal) : 0
 
   // ---- Dashboard ----
@@ -144,26 +200,80 @@ export default function AdminPanel({ currency = 'PEN' }) {
         </div>
         <div className="admin-stat admin-stat--accent">
           <span className="admin-stat__label">Pendientes</span>
-          <span className="admin-stat__value">{pending.length}</span>
-          <span className="admin-stat__sub">
-            {formatCurrency(pendingTotal, currency)} por validar
-          </span>
+          <span className="admin-stat__value">{pendingCount}</span>
+          <span className="admin-stat__sub">por validar</span>
         </div>
       </div>
 
-      <div className="admin__head">
-        <h2 className="section-title">Donaciones pendientes</h2>
+      {/* Editar título y meta */}
+      <form className="card admin-config" onSubmit={handleSaveConfig}>
+        <h2 className="section-title">Editar campaña</h2>
+        <label className="field-label" htmlFor="cfg-title">
+          Título
+        </label>
+        <input
+          id="cfg-title"
+          className="input"
+          type="text"
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          placeholder="Título de la campaña"
+        />
+        <label className="field-label" htmlFor="cfg-goal">
+          Meta ({currency})
+        </label>
+        <input
+          id="cfg-goal"
+          className="input"
+          type="number"
+          min="1"
+          value={editGoal}
+          onChange={(e) => setEditGoal(e.target.value)}
+          placeholder="30000"
+        />
+        <div className="admin-config__foot">
+          <button
+            className="btn btn--primary btn--sm"
+            type="submit"
+            disabled={savingConfig}
+          >
+            {savingConfig ? 'Guardando…' : 'Guardar cambios'}
+          </button>
+          {configMsg && <span className="admin-config__msg">{configMsg}</span>}
+        </div>
+      </form>
+
+      {/* Pestañas por estado */}
+      <div className="admin-tabs">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            className={`admin-tab ${tab === t.key ? 'is-active' : ''}`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+            {t.key === 'pending' && pendingCount > 0 && (
+              <span className="admin-tab__badge">{pendingCount}</span>
+            )}
+          </button>
+        ))}
       </div>
 
       {error && <p className="form-error">{error}</p>}
 
-      {pending.length === 0 ? (
+      {list.length === 0 ? (
         <div className="card admin__empty">
-          <p className="donations__empty">No hay donaciones pendientes 🎉</p>
+          <p className="donations__empty">
+            {tab === 'pending'
+              ? 'No hay donaciones pendientes 🎉'
+              : tab === 'approved'
+                ? 'Aún no hay donaciones aprobadas.'
+                : 'No hay donaciones rechazadas.'}
+          </p>
         </div>
       ) : (
         <ul className="admin__list">
-          {pending.map((d) => (
+          {list.map((d) => (
             <li key={d.id} className="card admin-item">
               <div className="admin-item__info">
                 <p className="admin-item__top">
@@ -175,20 +285,33 @@ export default function AdminPanel({ currency = 'PEN' }) {
                 <p className="admin-item__date">{timeAgo(d.created_at)}</p>
               </div>
               <div className="admin-item__actions">
-                <button
-                  className="btn btn--primary btn--sm"
-                  disabled={busyId === d.id}
-                  onClick={() => handleAction(d.id, 'approve')}
-                >
-                  Aprobar
-                </button>
-                <button
-                  className="btn btn--ghost btn--sm"
-                  disabled={busyId === d.id}
-                  onClick={() => handleAction(d.id, 'reject')}
-                >
-                  Rechazar
-                </button>
+                {tab === 'pending' && (
+                  <>
+                    <button
+                      className="btn btn--primary btn--sm"
+                      disabled={busyId === d.id}
+                      onClick={() => handleAction(d.id, 'approve')}
+                    >
+                      Aprobar
+                    </button>
+                    <button
+                      className="btn btn--ghost btn--sm"
+                      disabled={busyId === d.id}
+                      onClick={() => handleAction(d.id, 'reject')}
+                    >
+                      Rechazar
+                    </button>
+                  </>
+                )}
+                {tab !== 'pending' && (
+                  <button
+                    className="btn btn--ghost btn--sm"
+                    disabled={busyId === d.id}
+                    onClick={() => handleAction(d.id, 'reset')}
+                  >
+                    Deshacer
+                  </button>
+                )}
               </div>
             </li>
           ))}

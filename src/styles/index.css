@@ -623,6 +623,68 @@ body {
   color: var(--muted);
 }
 
+/* Editar campaña (título / meta) */
+.admin-config {
+  margin-bottom: 24px;
+}
+.admin-config .field-label:first-of-type {
+  margin-top: 4px;
+}
+.admin-config__foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.admin-config__msg {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--green-dark);
+}
+
+/* Pestañas por estado */
+.admin-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.admin-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.admin-tab:hover {
+  color: var(--ink);
+}
+.admin-tab.is-active {
+  color: var(--green-dark);
+  border-bottom-color: var(--green);
+}
+.admin-tab__badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  display: inline-grid;
+  place-items: center;
+}
+
 .admin__head {
   display: flex;
   align-items: center;
