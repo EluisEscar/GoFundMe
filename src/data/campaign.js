@@ -26,7 +26,8 @@ export const campaign = {
       phone: '979 325 027',
       // Opcional: ruta a una imagen del QR de Yape (colócala en /public).
       // Si lo dejas vacío, solo se muestra el número.
-      qrImage: '',
+      // (Este es un QR SIMULADO de muestra; reemplázalo por el real de tu Yape.)
+      qrImage: '/yape-qr.svg',
     },
     bankTransfer: {
       enabled: true,

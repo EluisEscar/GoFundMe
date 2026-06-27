@@ -143,7 +143,7 @@ export default function PaymentMethods({ methods, onSelect }) {
               </p>
               {paypal.link && (
                 <a
-                  className="btn btn--primary btn--block"
+                  className="btn btn--paypal btn--block"
                   href={paypal.link}
                   target="_blank"
                   rel="noreferrer"
