@@ -105,7 +105,7 @@ export default function App() {
 
           <div className="story card">
             <h2 className="section-title">Sobre esta causa</h2>
-            {campaign.story.map((p, i) => (
+            {(campaign.story || []).map((p, i) => (
               <p key={i} className="story__p">
                 {p}
               </p>
