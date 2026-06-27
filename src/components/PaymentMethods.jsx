@@ -130,7 +130,7 @@ export default function PaymentMethods({ methods, onSelect }) {
                 value={bankTransfer.bank}
               />
               <CopyRow label="Titular" value={bankTransfer.accountName} />
-              <CopyRow label="N° de cuenta" value={bankTransfer.accountNumber} />
+              <CopyRow label="N° de cuenta - Ahorro soles" value={bankTransfer.accountNumber} />
               <CopyRow label="CCI (interbancario)" value={bankTransfer.cci} />
             </div>
           )}
