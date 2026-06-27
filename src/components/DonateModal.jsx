@@ -2,19 +2,21 @@ import { useState, useEffect } from 'react'
 import { formatCurrency, thankYouMessage } from '../utils/format.js'
 import PaymentMethods from './PaymentMethods.jsx'
 
-// Modal de donación en dos pasos:
+// Modal de donación en tres pasos:
 //   Paso 1: elegir monto, nombre y mensaje.
-//   Paso 2: elegir método de pago (Yape / Transferencia) y ver los datos.
-//
-// El registro real de la donación lo hará el backend al detectar el ingreso
-// (scraping del correo del banco). Mientras tanto, el botón "Ya doné" llama a
-// onConfirm para simular el flujo en la demo.
+//   Paso 2: elegir método (Yape / Transferencia), ver los datos y poner el
+//           número de operación.
+//   Paso 3: confirmación (la donación queda pendiente de validación).
 export default function DonateModal({ campaign, onClose, onConfirm }) {
   const { suggestedAmounts, currency, paymentMethods } = campaign
   const [step, setStep] = useState(1)
   const [amount, setAmount] = useState(suggestedAmounts[1] ?? 50)
   const [name, setName] = useState('')
   const [message, setMessage] = useState('')
+  const [method, setMethod] = useState('otro')
+  const [opNumber, setOpNumber] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   // Cerrar con la tecla Escape.
   useEffect(() => {
@@ -28,8 +30,19 @@ export default function DonateModal({ campaign, onClose, onConfirm }) {
     if (Number(amount) > 0) setStep(2)
   }
 
-  function handleConfirm() {
-    onConfirm({ amount: Number(amount), name: name.trim() || 'Anónimo', message: message.trim() })
+  async function handleConfirm() {
+    setSubmitting(true)
+    setError('')
+    const ok = await onConfirm({
+      amount: Number(amount),
+      name: name.trim() || 'Anónimo',
+      message: message.trim(),
+      method,
+      op_number: opNumber.trim(),
+    })
+    setSubmitting(false)
+    if (ok) setStep(3)
+    else setError('No se pudo registrar. Revisa tu conexión e intenta de nuevo.')
   }
 
   return (
@@ -123,16 +136,53 @@ export default function DonateModal({ campaign, onClose, onConfirm }) {
               Donar {formatCurrency(Number(amount) || 0, currency)}
             </h2>
 
-            <PaymentMethods methods={paymentMethods} />
+            <PaymentMethods methods={paymentMethods} onSelect={setMethod} />
 
-            <button className="btn btn--primary btn--block" onClick={handleConfirm}>
-              Ya realicé mi donación
+            <label className="field-label" htmlFor="op-number">
+              N° de operación / constancia
+            </label>
+            <input
+              id="op-number"
+              className="input"
+              type="text"
+              placeholder="Ej: 00123456"
+              value={opNumber}
+              onChange={(e) => setOpNumber(e.target.value)}
+            />
+
+            {error && <p className="form-error">{error}</p>}
+
+            <button
+              className="btn btn--primary btn--block"
+              onClick={handleConfirm}
+              disabled={submitting}
+            >
+              {submitting ? 'Enviando…' : 'Ya realicé mi donación'}
             </button>
             <p className="pay__note">
-              Validaremos tu aporte automáticamente y aparecerá en la lista en
-              cuanto se confirme el ingreso.
+              Verificaremos tu aporte y aparecerá en la lista una vez confirmado.
             </p>
           </>
+        )}
+
+        {/* -------------------- Paso 3: confirmación -------------------- */}
+        {step === 3 && (
+          <div className="done">
+            <div className="done__icon" aria-hidden="true">
+              ✓
+            </div>
+            <h2 id="donate-title" className="section-title">
+              ¡Gracias por tu apoyo! 💚
+            </h2>
+            <p className="done__text">
+              Registramos tu donación de{' '}
+              <strong>{formatCurrency(Number(amount) || 0, currency)}</strong>.
+              La validaremos y aparecerá en las donaciones recientes muy pronto.
+            </p>
+            <button className="btn btn--primary btn--block" onClick={onClose}>
+              Cerrar
+            </button>
+          </div>
         )}
       </div>
     </div>

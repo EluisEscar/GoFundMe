@@ -1,34 +1,72 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { campaign as initialCampaign } from './data/campaign.js'
+import { fetchCampaign, submitDonation } from './lib/api.js'
 import DonationStats from './components/DonationStats.jsx'
 import DonationList from './components/DonationList.jsx'
 import DonateModal from './components/DonateModal.jsx'
+import AdminPanel from './components/AdminPanel.jsx'
 
 export default function App() {
-  // El estado de la campaña vive aquí. Cuando conectes tu backend, puedes
-  // cargar estos datos con un useEffect + fetch en lugar del import estático.
+  // Partimos de los datos demo (contenido + respaldo). Los números (recaudado,
+  // donantes, donaciones recientes) se sobrescriben con lo que devuelva la API.
   const [campaign, setCampaign] = useState(initialCampaign)
   const [showModal, setShowModal] = useState(false)
+  const [route, setRoute] = useState(() =>
+    typeof window !== 'undefined' ? window.location.hash : ''
+  )
 
-  // Simula registrar una donación actualizando el estado local.
-  // Reemplaza esto por la respuesta real de tu API/pasarela de pago.
-  function handleConfirmDonation({ amount, name, message }) {
-    setCampaign((prev) => ({
-      ...prev,
-      raised: prev.raised + amount,
-      donorsCount: prev.donorsCount + 1,
-      recentDonations: [
-        {
-          id: Date.now(),
-          name,
-          amount,
-          message,
-          date: new Date().toISOString().slice(0, 10),
-        },
-        ...prev.recentDonations,
-      ],
-    }))
-    setShowModal(false)
+  // Enrutado mínimo por hash: /#admin abre el panel de administración.
+  useEffect(() => {
+    const onHash = () => setRoute(window.location.hash)
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+
+  // Trae los datos vivos desde la API. Si falla (p. ej. backend aún no
+  // configurado), se mantiene el contenido demo para que la página no se rompa.
+  const loadCampaign = useCallback(async () => {
+    try {
+      const data = await fetchCampaign()
+      setCampaign((prev) => ({
+        ...prev,
+        title: data.title || prev.title,
+        goal: data.goal || prev.goal,
+        raised: data.raised,
+        donorsCount: data.donors,
+        recentDonations: (data.donations || []).map((d) => ({
+          id: d.id,
+          name: d.name,
+          amount: Number(d.amount),
+          message: d.message,
+          date: (d.created_at || '').slice(0, 10),
+        })),
+      }))
+    } catch {
+      // Sin backend: seguimos con los datos demo.
+    }
+  }, [])
+
+  // Carga inicial + sondeo cada 12s para que la barra suba sola al aprobarse.
+  useEffect(() => {
+    loadCampaign()
+    const id = setInterval(loadCampaign, 12000)
+    return () => clearInterval(id)
+  }, [loadCampaign])
+
+  // Registra la donación (queda pendiente de aprobación). Devuelve true/false
+  // para que el modal muestre el estado de éxito o error.
+  async function handleConfirmDonation(payload) {
+    try {
+      await submitDonation(payload)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // Panel de administración: se muestra al entrar con /#admin
+  if (route === '#admin') {
+    return <AdminPanel currency={campaign.currency} />
   }
 
   return (

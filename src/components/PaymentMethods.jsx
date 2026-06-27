@@ -29,11 +29,15 @@ function CopyRow({ label, value }) {
 
 // Apartado de donación: un par de botones (Yape / Transferencia) que, al
 // hacer clic, despliegan los datos de pago correspondientes.
-export default function PaymentMethods({ methods }) {
+export default function PaymentMethods({ methods, onSelect }) {
   const [open, setOpen] = useState(null) // 'yape' | 'bank' | null
   const { yape, bankTransfer } = methods
 
-  const toggle = (key) => setOpen((cur) => (cur === key ? null : key))
+  const toggle = (key) => {
+    setOpen((cur) => (cur === key ? null : key))
+    // Reporta el método elegido al componente padre (yape | transferencia).
+    if (onSelect) onSelect(key === 'bank' ? 'transferencia' : 'yape')
+  }
 
   return (
     <div className="pay">
