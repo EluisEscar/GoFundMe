@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import ws from 'ws'
 
 // Cliente de Supabase para el lado servidor (Vercel Functions).
 // Usa la SERVICE ROLE KEY, que ignora RLS. NUNCA la expongas al navegador.
@@ -8,7 +9,10 @@ export function getSupabase() {
   if (!url || !key) {
     throw new Error('Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY')
   }
-  return createClient(url, key, { auth: { persistSession: false } })
+  return createClient(url, key, {
+    auth: { persistSession: false },
+    realtime: { transport: ws },
+  })
 }
 
 // Lee y parsea el cuerpo JSON de la petición (Vercel ya lo hace en req.body,
