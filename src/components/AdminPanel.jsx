@@ -27,6 +27,7 @@ export default function AdminPanel({ currency = 'PEN' }) {
   const [totals, setTotals] = useState(null) // { raised, donors, goal, title }
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
+  const [loading, setLoading] = useState(false)
 
   // Edición de campaña
   const [editTitle, setEditTitle] = useState('')
@@ -35,39 +36,38 @@ export default function AdminPanel({ currency = 'PEN' }) {
   const [savingConfig, setSavingConfig] = useState(false)
   const [configMsg, setConfigMsg] = useState('')
 
-  const load = useCallback(
-    async (pw, which) => {
-      try {
-        // Siempre traemos las pendientes (para el contador) y, si la pestaña
-        // activa es otra, también su lista.
-        const pendingData = await fetchDonations(pw, 'pending')
-        setPendingCount(pendingData.donations.length)
-        if (which === 'pending') {
-          setList(pendingData.donations)
-        } else {
-          const data = await fetchDonations(pw, which)
-          setList(data.donations)
-        }
-        setAuthed(true)
-        setError('')
-        sessionStorage.setItem('admin_pw', pw)
-        fetchCampaign()
-          .then((c) =>
-            setTotals({
-              raised: c.raised,
-              donors: c.donors,
-              goal: c.goal,
-              title: c.title,
-            })
-          )
-          .catch(() => {})
-      } catch (e) {
-        setAuthed(false)
-        setError(e.message)
-      }
-    },
-    []
-  )
+  const load = useCallback(async (pw, which, silent = false) => {
+    if (!silent) setLoading(true)
+    try {
+      // Pedimos todo en paralelo: pendientes (para el contador), la pestaña
+      // activa y los totales de la campaña. Así no hay viajes en cadena.
+      const needsActive = which !== 'pending'
+      const [pendingData, activeData] = await Promise.all([
+        fetchDonations(pw, 'pending'),
+        needsActive ? fetchDonations(pw, which) : Promise.resolve(null),
+      ])
+      setPendingCount(pendingData.donations.length)
+      setList(needsActive ? activeData.donations : pendingData.donations)
+      setAuthed(true)
+      setError('')
+      sessionStorage.setItem('admin_pw', pw)
+      fetchCampaign()
+        .then((c) =>
+          setTotals({
+            raised: c.raised,
+            donors: c.donors,
+            goal: c.goal,
+            title: c.title,
+          })
+        )
+        .catch(() => {})
+    } catch (e) {
+      setAuthed(false)
+      setError(e.message)
+    } finally {
+      if (!silent) setLoading(false)
+    }
+  }, [])
 
   // Entrada directa si ya había contraseña guardada.
   useEffect(() => {
@@ -75,11 +75,12 @@ export default function AdminPanel({ currency = 'PEN' }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Recarga al cambiar de pestaña + refresco automático.
+  // Recarga al cambiar de pestaña + refresco automático (este último silencioso
+  // para no parpadear el indicador de carga cada 10 segundos).
   useEffect(() => {
     if (!authed) return
     load(password, tab)
-    const id = setInterval(() => load(password, tab), 10000)
+    const id = setInterval(() => load(password, tab, true), 10000)
     return () => clearInterval(id)
   }, [authed, tab, password, load])
 
@@ -261,7 +262,11 @@ export default function AdminPanel({ currency = 'PEN' }) {
 
       {error && <p className="form-error">{error}</p>}
 
-      {list.length === 0 ? (
+      {loading ? (
+        <div className="card admin__empty">
+          <p className="donations__empty">Cargando…</p>
+        </div>
+      ) : list.length === 0 ? (
         <div className="card admin__empty">
           <p className="donations__empty">
             {tab === 'pending'
