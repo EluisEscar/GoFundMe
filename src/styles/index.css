@@ -451,6 +451,38 @@ body {
   border-radius: 12px;
   background: var(--bg);
 }
+
+/* Sub-opciones dentro de "Transferencia / PayPal" (BCP / PayPal) */
+.pay__suboptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.pay__subbtn {
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.pay__subbtn:hover {
+  border-color: var(--green);
+}
+.pay__subbtn.is-active {
+  border-color: var(--green);
+  background: rgba(2, 169, 92, 0.1);
+  color: var(--green-dark);
+}
+.pay__subdetail {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
 .pay__hint {
   margin: 0 0 10px;
   font-size: 0.88rem;

@@ -19,7 +19,7 @@ create table if not exists public.donations (
   amount      numeric(10, 2) not null check (amount > 0),
   message     text not null default '',
   method      text not null default 'yape'
-                check (method in ('yape', 'transferencia', 'otro')),
+                check (method in ('yape', 'transferencia', 'paypal', 'otro')),
   op_number   text,                 -- número de operación / constancia
   voucher_url text,                 -- (opcional) imagen del comprobante
   status      text not null default 'pending'

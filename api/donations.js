@@ -51,7 +51,9 @@ export default async function handler(req, res) {
     const amount = Number(body.amount)
     const name = (body.name || '').toString().trim() || 'Anónimo'
     const message = (body.message || '').toString().trim().slice(0, 280)
-    const method = ['yape', 'transferencia', 'otro'].includes(body.method)
+    const method = ['yape', 'transferencia', 'paypal', 'otro'].includes(
+      body.method
+    )
       ? body.method
       : 'otro'
     const opNumber = (body.op_number || '').toString().trim().slice(0, 60)

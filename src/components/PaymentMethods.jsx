@@ -27,17 +27,27 @@ function CopyRow({ label, value }) {
   )
 }
 
-// Apartado de donación: un par de botones (Yape / Transferencia) que, al
-// hacer clic, despliegan los datos de pago correspondientes.
+// Apartado de donación. Botones principales: Yape y "Transferencia / PayPal".
+// Al abrir el segundo, aparecen dos sub-opciones (BCP y PayPal); al elegir una
+// se muestran sus datos correspondientes.
 export default function PaymentMethods({ methods, onSelect }) {
   const [open, setOpen] = useState(null) // 'yape' | 'bank' | null
-  const { yape, bankTransfer } = methods
+  const [bankOpt, setBankOpt] = useState(null) // 'bcp' | 'paypal' | null
+  const { yape, bankTransfer, paypal } = methods
 
-  const toggle = (key) => {
+  const toggleTop = (key) => {
     setOpen((cur) => (cur === key ? null : key))
-    // Reporta el método elegido al componente padre (yape | transferencia).
-    if (onSelect) onSelect(key === 'bank' ? 'transferencia' : 'yape')
+    setBankOpt(null)
+    if (key === 'yape' && onSelect) onSelect('yape')
   }
+
+  const chooseBank = (opt) => {
+    setBankOpt((cur) => (cur === opt ? null : opt))
+    if (onSelect) onSelect(opt === 'paypal' ? 'paypal' : 'transferencia')
+  }
+
+  // ¿Hay al menos una opción de "transferencia / paypal" habilitada?
+  const hasBankGroup = bankTransfer?.enabled || paypal?.enabled
 
   return (
     <div className="pay">
@@ -48,7 +58,7 @@ export default function PaymentMethods({ methods, onSelect }) {
           <button
             type="button"
             className={`pay__method pay__method--yape ${open === 'yape' ? 'is-open' : ''}`}
-            onClick={() => toggle('yape')}
+            onClick={() => toggleTop('yape')}
             aria-expanded={open === 'yape'}
           >
             <span className="pay__method-icon">📱</span>
@@ -56,15 +66,15 @@ export default function PaymentMethods({ methods, onSelect }) {
           </button>
         )}
 
-        {bankTransfer?.enabled && (
+        {hasBankGroup && (
           <button
             type="button"
             className={`pay__method pay__method--bank ${open === 'bank' ? 'is-open' : ''}`}
-            onClick={() => toggle('bank')}
+            onClick={() => toggleTop('bank')}
             aria-expanded={open === 'bank'}
           >
             <span className="pay__method-icon">🏦</span>
-            <span>Transferencia bancaria</span>
+            <span>Transferencia / PayPal</span>
           </button>
         )}
       </div>
@@ -84,16 +94,68 @@ export default function PaymentMethods({ methods, onSelect }) {
         </div>
       )}
 
-      {/* Detalle: Transferencia bancaria */}
-      {open === 'bank' && bankTransfer?.enabled && (
+      {/* Grupo: Transferencia / PayPal */}
+      {open === 'bank' && hasBankGroup && (
         <div className="pay__detail">
-          <p className="pay__hint">
-            Transfiere desde tu banca y guarda el comprobante.
-          </p>
-          <CopyRow label={`Banco (${bankTransfer.currency})`} value={bankTransfer.bank} />
-          <CopyRow label="Titular" value={bankTransfer.accountName} />
-          <CopyRow label="N° de cuenta" value={bankTransfer.accountNumber} />
-          <CopyRow label="CCI (interbancario)" value={bankTransfer.cci} />
+          <p className="pay__hint">Elige el medio:</p>
+          <div className="pay__suboptions">
+            {bankTransfer?.enabled && (
+              <button
+                type="button"
+                className={`pay__subbtn ${bankOpt === 'bcp' ? 'is-active' : ''}`}
+                onClick={() => chooseBank('bcp')}
+              >
+                🏦 {bankTransfer.bank || 'Banco'}
+              </button>
+            )}
+            {paypal?.enabled && (
+              <button
+                type="button"
+                className={`pay__subbtn ${bankOpt === 'paypal' ? 'is-active' : ''}`}
+                onClick={() => chooseBank('paypal')}
+              >
+                💳 PayPal
+              </button>
+            )}
+          </div>
+
+          {/* Datos del banco (BCP) */}
+          {bankOpt === 'bcp' && bankTransfer?.enabled && (
+            <div className="pay__subdetail">
+              <p className="pay__hint">
+                Transfiere desde tu banca y guarda el comprobante.
+              </p>
+              <CopyRow
+                label={`Banco (${bankTransfer.currency})`}
+                value={bankTransfer.bank}
+              />
+              <CopyRow label="Titular" value={bankTransfer.accountName} />
+              <CopyRow label="N° de cuenta" value={bankTransfer.accountNumber} />
+              <CopyRow label="CCI (interbancario)" value={bankTransfer.cci} />
+            </div>
+          )}
+
+          {/* Datos de PayPal */}
+          {bankOpt === 'paypal' && paypal?.enabled && (
+            <div className="pay__subdetail">
+              <p className="pay__hint">
+                Ideal para donaciones desde el extranjero.
+              </p>
+              {paypal.link && (
+                <a
+                  className="btn btn--primary btn--block"
+                  href={paypal.link}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Pagar con PayPal
+                </a>
+              )}
+              {paypal.email && (
+                <CopyRow label="Correo de PayPal" value={paypal.email} />
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

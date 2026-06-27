@@ -67,5 +67,12 @@ export const campaign = {
       cci: '002-193-001234567800-99',
       currency: 'Soles (S/)',
     },
+    paypal: {
+      enabled: true,
+      // Correo asociado a tu cuenta de PayPal.
+      email: 'tucorreo@ejemplo.com',
+      // Enlace de PayPal.me (opcional). Si lo dejas vacío, solo se muestra el correo.
+      link: 'https://paypal.me/tuusuario',
+    },
   },
 }
