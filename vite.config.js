@@ -6,9 +6,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['api'],
   },
-  server: {
-    fs: {
-      allow: ['src', 'public', 'node_modules'],
-    },
-  },
 })
