@@ -52,6 +52,15 @@ export default async function handler(req, res) {
         }
         patch.goal = goal
       }
+      if (typeof body.config.organizer === 'string') {
+        patch.organizer = body.config.organizer.trim().slice(0, 200)
+      }
+      if (typeof body.config.location === 'string') {
+        patch.location = body.config.location.trim().slice(0, 200)
+      }
+      if (typeof body.config.story === 'string') {
+        patch.story = body.config.story.slice(0, 5000)
+      }
       if (Object.keys(patch).length === 0) {
         return res.status(400).json({ error: 'Nada que actualizar' })
       }

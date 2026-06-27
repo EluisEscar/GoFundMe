@@ -27,10 +27,18 @@ export default function App() {
   const loadCampaign = useCallback(async () => {
     try {
       const data = await fetchCampaign()
+      // La historia viaja como texto (párrafos separados por saltos de línea).
+      const storyParas = (data.story || '')
+        .split('\n')
+        .map((p) => p.trim())
+        .filter(Boolean)
       setCampaign((prev) => ({
         ...prev,
         title: data.title || prev.title,
         goal: data.goal || prev.goal,
+        organizer: data.organizer || prev.organizer,
+        location: data.location || prev.location,
+        story: storyParas.length ? storyParas : prev.story,
         raised: data.raised,
         donorsCount: data.donors,
         recentDonations: (data.donations || []).map((d) => ({
@@ -66,7 +74,9 @@ export default function App() {
 
   // Panel de administración: se muestra al entrar con /#admin
   if (route === '#admin') {
-    return <AdminPanel currency={campaign.currency} />
+    return (
+      <AdminPanel currency={campaign.currency} fallback={initialCampaign} />
+    )
   }
 
   return (

@@ -16,7 +16,7 @@ const TABS = [
 // Panel de administración (ruta /#admin). Pide una contraseña, muestra un
 // resumen de la campaña, permite editar título/meta y gestionar las donaciones
 // (aprobar, rechazar y deshacer) organizadas por estado en pestañas.
-export default function AdminPanel({ currency = 'PEN' }) {
+export default function AdminPanel({ currency = 'PEN', fallback = {} }) {
   const [password, setPassword] = useState(
     () => sessionStorage.getItem('admin_pw') || ''
   )
@@ -32,6 +32,9 @@ export default function AdminPanel({ currency = 'PEN' }) {
   // Edición de campaña
   const [editTitle, setEditTitle] = useState('')
   const [editGoal, setEditGoal] = useState('')
+  const [editOrganizer, setEditOrganizer] = useState('')
+  const [editLocation, setEditLocation] = useState('')
+  const [editStory, setEditStory] = useState('')
   const [configInit, setConfigInit] = useState(false)
   const [savingConfig, setSavingConfig] = useState(false)
   const [configMsg, setConfigMsg] = useState('')
@@ -58,6 +61,9 @@ export default function AdminPanel({ currency = 'PEN' }) {
             donors: c.donors,
             goal: c.goal,
             title: c.title,
+            organizer: c.organizer,
+            location: c.location,
+            story: c.story,
           })
         )
         .catch(() => {})
@@ -84,14 +90,22 @@ export default function AdminPanel({ currency = 'PEN' }) {
     return () => clearInterval(id)
   }, [authed, tab, password, load])
 
-  // Inicializa los campos de edición cuando llegan los totales.
+  // Inicializa los campos de edición cuando llegan los totales. Si la base de
+  // datos aún no tiene un campo, usamos el valor por defecto (campaign.js) como
+  // punto de partida para no aparecer en blanco.
   useEffect(() => {
     if (totals && !configInit) {
-      setEditTitle(totals.title || '')
-      setEditGoal(String(totals.goal || ''))
+      const fbStory = Array.isArray(fallback.story)
+        ? fallback.story.join('\n')
+        : fallback.story || ''
+      setEditTitle(totals.title || fallback.title || '')
+      setEditGoal(String(totals.goal || fallback.goal || ''))
+      setEditOrganizer(totals.organizer || fallback.organizer || '')
+      setEditLocation(totals.location || fallback.location || '')
+      setEditStory(totals.story || fbStory)
       setConfigInit(true)
     }
-  }, [totals, configInit])
+  }, [totals, configInit, fallback])
 
   async function handleAction(id, action) {
     setBusyId(id)
@@ -115,6 +129,9 @@ export default function AdminPanel({ currency = 'PEN' }) {
       await updateCampaignConfig(password, {
         title: editTitle,
         goal: Number(editGoal),
+        organizer: editOrganizer,
+        location: editLocation,
+        story: editStory,
       })
       setConfigMsg('Guardado ✓')
       load(password, tab)
@@ -232,6 +249,42 @@ export default function AdminPanel({ currency = 'PEN' }) {
           onChange={(e) => setEditGoal(e.target.value)}
           placeholder="30000"
         />
+        <label className="field-label" htmlFor="cfg-organizer">
+          Organiza
+        </label>
+        <input
+          id="cfg-organizer"
+          className="input"
+          type="text"
+          value={editOrganizer}
+          onChange={(e) => setEditOrganizer(e.target.value)}
+          placeholder="Nombre de quien organiza"
+        />
+        <label className="field-label" htmlFor="cfg-location">
+          Ubicación
+        </label>
+        <input
+          id="cfg-location"
+          className="input"
+          type="text"
+          value={editLocation}
+          onChange={(e) => setEditLocation(e.target.value)}
+          placeholder="Lima, Perú"
+        />
+        <label className="field-label" htmlFor="cfg-story">
+          Sobre esta causa
+        </label>
+        <textarea
+          id="cfg-story"
+          className="input"
+          rows="6"
+          value={editStory}
+          onChange={(e) => setEditStory(e.target.value)}
+          placeholder="Cuenta la historia de la campaña. Deja una línea en blanco entre párrafos."
+        />
+        <p className="admin-config__hint">
+          Cada salto de línea crea un párrafo nuevo en la página.
+        </p>
         <div className="admin-config__foot">
           <button
             className="btn btn--primary btn--sm"

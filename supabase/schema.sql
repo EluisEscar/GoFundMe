@@ -41,8 +41,16 @@ create table if not exists public.campaign_config (
   id         int primary key default 1 check (id = 1),
   title      text not null default 'Campaña',
   goal       numeric(12, 2) not null default 50000,
+  organizer  text not null default '',
+  location   text not null default '',
+  story      text not null default '',  -- párrafos separados por saltos de línea
   updated_at timestamptz not null default now()
 );
+
+-- Si la tabla ya existía, agregamos las columnas nuevas (seguro re-ejecutar).
+alter table public.campaign_config add column if not exists organizer text not null default '';
+alter table public.campaign_config add column if not exists location  text not null default '';
+alter table public.campaign_config add column if not exists story     text not null default '';
 
 insert into public.campaign_config (id, title, goal)
   values (1, 'Ayúdanos a reconstruir la escuela del barrio', 50000)

@@ -21,7 +21,11 @@ export default async function handler(req, res) {
         .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .limit(50),
-      supabase.from('campaign_config').select('title, goal').eq('id', 1).single(),
+      supabase
+        .from('campaign_config')
+        .select('title, goal, organizer, location, story')
+        .eq('id', 1)
+        .single(),
     ])
 
     if (totals.error || recent.error || config.error) {
@@ -34,6 +38,9 @@ export default async function handler(req, res) {
       donors: Number(totals.data?.donors ?? 0),
       goal: Number(config.data?.goal ?? 0),
       title: config.data?.title ?? '',
+      organizer: config.data?.organizer ?? '',
+      location: config.data?.location ?? '',
+      story: config.data?.story ?? '',
       donations: recent.data ?? [],
     })
   }

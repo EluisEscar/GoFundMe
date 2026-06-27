@@ -630,6 +630,11 @@ body {
 .admin-config .field-label:first-of-type {
   margin-top: 4px;
 }
+.admin-config__hint {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
 .admin-config__foot {
   display: flex;
   align-items: center;
