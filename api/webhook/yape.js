@@ -1,16 +1,20 @@
-import { getSupabase, readBody } from '../_lib/supabase.js'
+import { getSupabase } from '../_lib/supabase.js'
 
 // =============================================================================
 // Webhook de Yape (semi-automático)
 // -----------------------------------------------------------------------------
-// La idea: una app en tu celular Android (MacroDroid / Tasker) lee la
-// notificación que envía Yape cuando RECIBES un pago y la reenvía aquí.
+// La idea: una app en tu celular Android (Automate / Tasker / MacroDroid) lee
+// la notificación que envía Yape cuando RECIBES un pago y la reenvía aquí.
 // Este endpoint registra la donación automáticamente.
 //
 //   POST /api/webhook/yape?token=SECRETO
-//   body (cualquiera de estas dos formas):
-//     { "amount": 20, "name": "Juan Pérez", "external_id": "123..." }
-//     { "text": "Has recibido un pago de S/ 20.00 de Juan Pérez", "external_id": "..." }
+//
+// El contenido se acepta de forma flexible, en cualquiera de estas formas:
+//   - JSON:        { "text": "...", "external_id": "..." }
+//   - JSON:        { "amount": 20, "name": "Juan", "external_id": "..." }
+//   - Formulario:  text=...&external_id=...
+//   - Texto plano: (todo el cuerpo es el texto de la notificación)
+//   - Query:       ?token=...&text=...&external_id=...
 //
 // Seguridad: se exige el token secreto (YAPE_WEBHOOK_SECRET) para que nadie
 // más pueda inflar la barra con pagos falsos.
@@ -28,11 +32,24 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'No autorizado' })
   }
 
-  const body = readBody(req)
+  // --- Lectura flexible del contenido (JSON / formulario / texto / query) ---
+  const q = req.query || {}
+  let parsed = {}
+  const raw = req.body
+  if (raw && typeof raw === 'object') {
+    parsed = raw // JSON o formulario ya parseado por Vercel
+  } else if (typeof raw === 'string' && raw.trim()) {
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      parsed = { text: raw } // texto plano: todo el cuerpo es la notificación
+    }
+  }
+
+  const text = (parsed.text ?? q.text ?? '').toString()
 
   // --- Obtener monto: explícito o parseado del texto ---
-  let amount = Number(body.amount)
-  const text = (body.text || '').toString()
+  let amount = Number(parsed.amount ?? q.amount)
   if (!amount && text) amount = parseAmount(text)
 
   if (!amount || amount <= 0) {
@@ -40,16 +57,17 @@ export default async function handler(req, res) {
   }
 
   // --- Nombre: explícito o parseado, con respaldo genérico ---
-  let name = (body.name || '').toString().trim()
+  let name = (parsed.name ?? q.name ?? '').toString().trim()
   if (!name && text) name = parseName(text)
   if (!name) name = 'Donación por Yape'
 
   // --- Idempotencia: evita registrar dos veces la misma notificación ---
-  // MacroDroid debería enviar un external_id estable (id o fecha+hora de la
+  // La app debería enviar un external_id estable (id o fecha+hora de la
   // notificación). Si no llega, lo derivamos del texto + monto.
   const externalId =
-    (body.external_id || body.externalId || '').toString().trim() ||
-    `yape:${amount}:${text}`.slice(0, 200)
+    (parsed.external_id ?? parsed.externalId ?? q.external_id ?? '')
+      .toString()
+      .trim() || `yape:${amount}:${text}`.slice(0, 200)
 
   let supabase
   try {

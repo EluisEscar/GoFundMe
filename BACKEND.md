@@ -66,11 +66,11 @@ vercel dev             # levanta front + /api juntos
 | `POST` | `/api/admin` | `{ id, action }` o `{ config }` | `x-admin-password` |
 | `POST` | `/api/webhook/yape` | Registra un Yape recibido (semi-auto) | `token` |
 
-## Fase 2 — Semi-automatizar Yape con MacroDroid (Android)
+## Fase 2 — Semi-automatizar Yape con Automate (Android, gratis)
 
 Cuando **recibes** un Yape, tu celular muestra una notificación. La idea es leer
-esa notificación con **MacroDroid** y reenviarla al webhook para que la donación
-se registre sola.
+esa notificación con **Automate** (de LlamaLab, gratis y sin suscripción) y
+reenviarla al webhook para que la donación se registre sola.
 
 > Solo funciona en **Android** (iPhone no deja leer notificaciones de otras
 > apps). El celular debe estar encendido y con datos/wifi.
@@ -85,25 +85,40 @@ Añade en **Settings → Environment Variables**:
 
 Vuelve a desplegar.
 
-### 2. Instala MacroDroid y crea una macro
-1. Instala **MacroDroid** (Play Store) y dale permiso de **acceso a
-   notificaciones**.
-2. Crea una macro nueva:
-   - **Disparador (Trigger):** *Notificación recibida* → app **Yape**.
-   - **Acción (Action):** *Petición HTTP / HTTP Request*:
-     - Método: **POST**
-     - URL: `https://tu-sitio.vercel.app/api/webhook/yape?token=TU_SECRETO`
-     - Tipo de contenido: **application/json**
-     - Cuerpo:
-       ```json
-       { "text": "[notification_text]", "external_id": "[notification_id]" }
-       ```
-       (`[notification_text]` y `[notification_id]` son "magic text" que
-       MacroDroid reemplaza por el contenido real de la notificación.)
+### 2. Instala Automate y crea un flujo (flow)
+1. Instala **Automate** (Play Store) y dale permiso de **acceso a
+   notificaciones** (te lo pedirá al usar el primer bloque).
+2. Crea un flujo nuevo con estos bloques, conectados en orden:
 
-El webhook saca el **monto** del texto (`S/ 20.00`) y, si puede, el **nombre**.
-También puedes mandar `amount` y `name` por separado si logras extraerlos con el
-magic text de MacroDroid (más preciso).
+   **a) Bloque "Flow beginning"** (viene por defecto).
+
+   **b) Bloque "Notification on posted"** (disparador):
+   - En *Application(s)* elige **Yape** (paquete `com.bcp.innovacxion.yapeapp`).
+   - Esto deja disponibles variables como `text` (el texto de la notificación),
+     `key` y `postTime` (un identificador y la hora).
+
+   **c) Bloque "HTTP request"**:
+   - Method: **POST**
+   - URL: pega esto (cambiando tu sitio y tu secreto):
+     ```
+     https://tu-sitio.vercel.app/api/webhook/yape?token=TU_SECRETO&external_id=
+     ```
+     y al final, **concatena la variable** `postTime` (o `key`) para el
+     external_id. En el campo URL de Automate puedes escribir:
+     ```
+     "https://tu-sitio.vercel.app/api/webhook/yape?token=TU_SECRETO&external_id=" + postTime
+     ```
+   - **Request content type:** `text/plain`
+   - **Request body:** la variable `text` (el texto crudo de la notificación).
+     No necesitas formatear JSON: el webhook acepta el texto plano tal cual.
+
+   **d) Conecta la salida del bloque HTTP de vuelta al bloque "Notification on
+   posted"** para que siga escuchando los siguientes pagos.
+
+3. Pulsa **Start** (▶) en el flujo y déjalo corriendo.
+
+El webhook saca el **monto** del texto (`S/ 20.00`) y, si puede, el **nombre**
+del pagador. El `external_id` (la hora del pago) evita duplicados.
 
 ### 3. Prueba
 Pídele a alguien que te yapee S/ 1 (o háztelo tú). En segundos la donación debe
@@ -113,5 +128,9 @@ aparecer en `/#admin` (y subir la barra si `AUTOAPPROVE=true`).
   dos veces.
 - **Seguridad:** sin el `token` correcto el webhook responde 401.
 
-> Alternativa "oficial" con nombre verificado y webhook real (cobra ~2.95% de
-> comisión): Culqi / Izipay / Yape Empresa / Mercado Pago.
+> El webhook es flexible: acepta el contenido como **texto plano**, **JSON**,
+> **formulario** o **query string**. Así funciona con Automate, Tasker,
+> MacroDroid o cualquier app que haga un POST.
+
+> Alternativa "oficial" sin depender del celular (cobra ~2.95% de comisión):
+> Mercado Pago / Culqi / Izipay / Yape Empresa.
