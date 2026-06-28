@@ -62,21 +62,56 @@ vercel dev             # levanta front + /api juntos
 |---|---|---|---|
 | `GET` | `/api/donations` | Totales + donaciones aprobadas | — |
 | `POST` | `/api/donations` | Registra una donación (pendiente) | — |
-| `GET` | `/api/admin` | Lista pendientes | `x-admin-password` |
-| `POST` | `/api/admin` | `{ id, action: approve\|reject }` | `x-admin-password` |
+| `GET` | `/api/admin?status=` | Lista por estado (pending/approved/rejected) | `x-admin-password` |
+| `POST` | `/api/admin` | `{ id, action }` o `{ config }` | `x-admin-password` |
+| `POST` | `/api/webhook/yape` | Registra un Yape recibido (semi-auto) | `token` |
 
-## Fase 2 — Automatizar la detección de ingresos (opcional)
+## Fase 2 — Semi-automatizar Yape con MacroDroid (Android)
 
-BCP **no notifica los ingresos por correo de forma confiable**, así que el
-scraping de email no sirve para detectar donaciones. La vía real en Perú es
-capturar la **notificación push de Yape** en un Android y reenviarla a un
-webhook:
+Cuando **recibes** un Yape, tu celular muestra una notificación. La idea es leer
+esa notificación con **MacroDroid** y reenviarla al webhook para que la donación
+se registre sola.
 
-1. App lectora de notificaciones (MacroDroid/Tasker o servicios como Yapay)
-   detecta *"Te yapeó S/ X — Nombre"*.
-2. Hace `POST` a un endpoint `/api/webhook/yape` (por crear) con monto y nombre.
-3. El webhook crea la donación (pendiente o auto-aprobada) usando `external_id`
-   para evitar duplicados.
+> Solo funciona en **Android** (iPhone no deja leer notificaciones de otras
+> apps). El celular debe estar encendido y con datos/wifi.
 
-Alternativa con webhook oficial y nombre verificado (cobra ~2.95%):
-Culqi / Izipay / Yape Empresa / Mercado Pago.
+### 1. Configura el secreto en Vercel
+Añade en **Settings → Environment Variables**:
+
+| Variable | Valor |
+|---|---|
+| `YAPE_WEBHOOK_SECRET` | una cadena larga y aleatoria (tu "llave") |
+| `YAPE_WEBHOOK_AUTOAPPROVE` | `true` (sube la barra solo) o `false` (revisar en /#admin) |
+
+Vuelve a desplegar.
+
+### 2. Instala MacroDroid y crea una macro
+1. Instala **MacroDroid** (Play Store) y dale permiso de **acceso a
+   notificaciones**.
+2. Crea una macro nueva:
+   - **Disparador (Trigger):** *Notificación recibida* → app **Yape**.
+   - **Acción (Action):** *Petición HTTP / HTTP Request*:
+     - Método: **POST**
+     - URL: `https://tu-sitio.vercel.app/api/webhook/yape?token=TU_SECRETO`
+     - Tipo de contenido: **application/json**
+     - Cuerpo:
+       ```json
+       { "text": "[notification_text]", "external_id": "[notification_id]" }
+       ```
+       (`[notification_text]` y `[notification_id]` son "magic text" que
+       MacroDroid reemplaza por el contenido real de la notificación.)
+
+El webhook saca el **monto** del texto (`S/ 20.00`) y, si puede, el **nombre**.
+También puedes mandar `amount` y `name` por separado si logras extraerlos con el
+magic text de MacroDroid (más preciso).
+
+### 3. Prueba
+Pídele a alguien que te yapee S/ 1 (o háztelo tú). En segundos la donación debe
+aparecer en `/#admin` (y subir la barra si `AUTOAPPROVE=true`).
+
+- **Idempotencia:** el `external_id` evita que la misma notificación se registre
+  dos veces.
+- **Seguridad:** sin el `token` correcto el webhook responde 401.
+
+> Alternativa "oficial" con nombre verificado y webhook real (cobra ~2.95% de
+> comisión): Culqi / Izipay / Yape Empresa / Mercado Pago.
