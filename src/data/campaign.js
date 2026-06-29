@@ -5,6 +5,11 @@ export const campaign = {
   location: 'Lima, Perú',
   createdAt: '2026-06-01',
 
+  // --- Contacto / WhatsApp ---
+  // Número en formato internacional SIN "+" ni espacios (51 = Perú).
+  // Déjalo vacío ('') para ocultar el botón de WhatsApp.
+  contactWhatsapp: '51979325027',
+
   // --- Imagen de portada ---
   coverImage:
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80',
@@ -25,6 +30,13 @@ export const campaign = {
       holder: 'Esteban L. Escarcena Torres',
       phone: '979325027',
       qrImage: '/yape-qr.svg',
+    },
+    plin: {
+      enabled: true,
+      holder: 'Esteban L. Escarcena Torres',
+      phone: '979 325 027',
+      // Opcional: imagen del QR de Plin en /public. Vacío = solo el número.
+      qrImage: '',
     },
     bankTransfer: {
       enabled: true,

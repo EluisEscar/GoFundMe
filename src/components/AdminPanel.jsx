@@ -108,10 +108,17 @@ export default function AdminPanel({ currency = 'PEN', fallback = {} }) {
   }, [totals, configInit, fallback])
 
   async function handleAction(id, action) {
+    // Eliminar es definitivo: pedimos confirmación.
+    if (
+      action === 'delete' &&
+      !window.confirm('¿Eliminar esta donación de forma permanente?')
+    ) {
+      return
+    }
     setBusyId(id)
     try {
       await actOnDonation(password, id, action)
-      // Quitamos el ítem de la lista actual (cambió de estado).
+      // Quitamos el ítem de la lista actual (cambió de estado o se borró).
       setList((cur) => cur.filter((d) => d.id !== id))
       load(password, tab) // refresca contadores y totales
     } catch (e) {
@@ -368,6 +375,15 @@ export default function AdminPanel({ currency = 'PEN', fallback = {} }) {
                     onClick={() => handleAction(d.id, 'reset')}
                   >
                     Deshacer
+                  </button>
+                )}
+                {tab === 'rejected' && (
+                  <button
+                    className="btn btn--danger btn--sm"
+                    disabled={busyId === d.id}
+                    onClick={() => handleAction(d.id, 'delete')}
+                  >
+                    Eliminar
                   </button>
                 )}
               </div>
