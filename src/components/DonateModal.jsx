@@ -88,6 +88,8 @@ export default function DonateModal({ campaign, onClose, onConfirm }) {
                 min="1"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                // Evita que la rueda del mouse cambie el monto al hacer scroll.
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {thankYouMessage(amount) && (
                 <p className="thanks-live">{thankYouMessage(amount)}</p>
