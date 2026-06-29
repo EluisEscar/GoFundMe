@@ -74,10 +74,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true })
     }
 
-    // --- Aprobar / Rechazar / Deshacer una donación ---
+    // --- Aprobar / Rechazar / Deshacer / Eliminar una donación ---
     const { id, action } = body
-    if (!id || !['approve', 'reject', 'reset'].includes(action)) {
+    if (!id || !['approve', 'reject', 'reset', 'delete'].includes(action)) {
       return res.status(400).json({ error: 'Petición inválida' })
+    }
+
+    // Eliminar borra la fila definitivamente.
+    if (action === 'delete') {
+      const { error } = await supabase.from('donations').delete().eq('id', id)
+      if (error) return res.status(500).json({ error: error.message })
+      return res.status(200).json({ ok: true })
     }
 
     let patch

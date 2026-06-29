@@ -219,6 +219,15 @@ body {
 .btn--paypal:hover {
   background: #005ea6;
 }
+.btn--danger {
+  background: transparent;
+  color: #b42318;
+  border-color: #f3b4ac;
+}
+.btn--danger:hover {
+  background: #fef3f2;
+  border-color: #b42318;
+}
 .btn--block {
   width: 100%;
 }
