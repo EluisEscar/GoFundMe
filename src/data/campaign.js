@@ -23,10 +23,7 @@ export const campaign = {
     yape: {
       enabled: true,
       holder: 'Esteban L. Escarcena Torres',
-      phone: '979 325 027',
-      // Opcional: ruta a una imagen del QR de Yape (colócala en /public).
-      // Si lo dejas vacío, solo se muestra el número.
-      // (Este es un QR SIMULADO de muestra; reemplázalo por el real de tu Yape.)
+      phone: '979325027',
       qrImage: '/yape-qr.svg',
     },
     bankTransfer: {

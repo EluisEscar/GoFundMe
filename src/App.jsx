@@ -84,7 +84,7 @@ export default function App() {
       <header className="topbar">
         <div className="container topbar__inner">
           <span className="brand">
-            <span className="brand__dot" /> RecaudaYa
+            <span className="brand__dot" /> AyudaPe
           </span>
           <button className="btn btn--primary btn--sm" onClick={() => setShowModal(true)}>
             Donar
