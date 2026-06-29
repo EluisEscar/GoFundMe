@@ -5,6 +5,8 @@ import DonationStats from './components/DonationStats.jsx'
 import DonationList from './components/DonationList.jsx'
 import DonateModal from './components/DonateModal.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
+import HowToSteps from './components/HowToSteps.jsx'
+import WhatsappButton from './components/WhatsappButton.jsx'
 
 export default function App() {
   // Partimos de los datos demo (contenido + respaldo). Los números (recaudado,
@@ -111,6 +113,8 @@ export default function App() {
               </p>
             ))}
           </div>
+
+          <HowToSteps onDonate={() => setShowModal(true)} />
         </section>
 
         <DonationStats campaign={campaign} onDonate={() => setShowModal(true)} />
@@ -129,6 +133,11 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      <WhatsappButton
+        phone={campaign.contactWhatsapp}
+        message={`Hola, tengo una consulta sobre la campaña "${campaign.title}".`}
+      />
 
       {showModal && (
         <DonateModal

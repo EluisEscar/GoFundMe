@@ -31,14 +31,15 @@ function CopyRow({ label, value }) {
 // Al abrir el segundo, aparecen dos sub-opciones (BCP y PayPal); al elegir una
 // se muestran sus datos correspondientes.
 export default function PaymentMethods({ methods, onSelect }) {
-  const [open, setOpen] = useState(null) // 'yape' | 'bank' | null
+  const [open, setOpen] = useState(null) // 'yape' | 'plin' | 'bank' | null
   const [bankOpt, setBankOpt] = useState(null) // 'bcp' | 'paypal' | null
-  const { yape, bankTransfer, paypal } = methods
+  const { yape, plin, bankTransfer, paypal } = methods
 
   const toggleTop = (key) => {
     setOpen((cur) => (cur === key ? null : key))
     setBankOpt(null)
     if (key === 'yape' && onSelect) onSelect('yape')
+    if (key === 'plin' && onSelect) onSelect('plin')
   }
 
   const chooseBank = (opt) => {
@@ -63,6 +64,18 @@ export default function PaymentMethods({ methods, onSelect }) {
           >
             <span className="pay__method-icon">📱</span>
             <span>Yape</span>
+          </button>
+        )}
+
+        {plin?.enabled && (
+          <button
+            type="button"
+            className={`pay__method pay__method--plin ${open === 'plin' ? 'is-open' : ''}`}
+            onClick={() => toggleTop('plin')}
+            aria-expanded={open === 'plin'}
+          >
+            <span className="pay__method-icon">💜</span>
+            <span>Plin</span>
           </button>
         )}
 
@@ -91,6 +104,21 @@ export default function PaymentMethods({ methods, onSelect }) {
           )}
           <CopyRow label="Número de Yape" value={yape.phone} />
           <CopyRow label="A nombre de" value={yape.holder} />
+        </div>
+      )}
+
+      {/* Detalle: Plin */}
+      {open === 'plin' && plin?.enabled && (
+        <div className="pay__detail">
+          {plin.qrImage ? (
+            <img className="pay__qr" src={plin.qrImage} alt="Código QR de Plin" />
+          ) : (
+            <p className="pay__hint">
+              Abre Plin en tu banca, busca el número y envía tu apoyo 💜
+            </p>
+          )}
+          <CopyRow label="Número de Plin" value={plin.phone} />
+          <CopyRow label="A nombre de" value={plin.holder} />
         </div>
       )}
 
